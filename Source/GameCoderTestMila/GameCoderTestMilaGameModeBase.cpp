@@ -1,29 +1,46 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "GameCoderTestMilaGameModeBase.h"
-
-#include "Engine/AssetManager.h"
 
 void AGameCoderTestMilaGameModeBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	FootballDataTable = FootballDataTableRef.LoadSynchronous();
-
-	// FootballDataTable = Cast<UDataTable>(UAssetManager::GetStreamableManager().LoadSynchronous(FootballDataTableRef.ToSoftObjectPath()));
-	if (!FootballDataTable)
+	
+	if (!ensure(FootballDataTableRef.LoadSynchronous()))
 	{
 		UE_LOG(LogTemp, Error, TEXT("Failed to load FootballDataTable from the Asset Reference."));
-		return;
 	}
 }
 
-void AGameCoderTestMilaGameModeBase::SimulateMatchesInterface_Implementation()
+void UpdateTeamData(FFootballTeamData& Team, int32 GoalsFor, int32 GoalsAgainst)
 {
-	TArray<FFootballTeamData*> FootballTeamsData;
-	FootballDataTable->GetAllRows("", FootballTeamsData);
-	const int32 NumTeams = FootballTeamsData.Num();
+	Team.GamesPlayed++;
+	Team.GoalsFor += GoalsFor;
+	Team.GoalsAgainst += GoalsAgainst;
+
+	if (GoalsFor > GoalsAgainst)
+	{
+		Team.GamesWon++;
+	}
+	else if (GoalsAgainst > GoalsFor)
+	{
+		Team.GamesLost++;
+	}
+}
+
+void AGameCoderTestMilaGameModeBase::SimulateMatches()
+{
 	
+	TArray<FFootballTeamData*> FootballTeamsData;
+	FootballDataTableRef->GetAllRows("", FootballTeamsData);
+	const int32 NumTeams = FootballTeamsData.Num();
+
+	for (const auto TeamsData : FootballTeamsData)
+	{
+		TeamsData->GamesLost = 0;
+		TeamsData->GamesPlayed = 0;
+		TeamsData->GamesWon = 0;
+		TeamsData->GoalsAgainst = 0;
+		TeamsData->GoalsFor = 0;
+	}
 	for (int32 i = 0; i < NumTeams; ++i)
 	{
 		for (int32 j = i + 1; j < NumTeams; ++j)
@@ -31,24 +48,36 @@ void AGameCoderTestMilaGameModeBase::SimulateMatchesInterface_Implementation()
 			FFootballTeamData& Team1 = *FootballTeamsData[i];
 			FFootballTeamData& Team2 = *FootballTeamsData[j];
 
-			if (bool TeamWon = FMath::RandBool())
-			{
-				Team1.GamesPlayed++;
-				Team1.GamesWon++;
-				Team1.GoalsFor += 2;
-				Team2.GamesPlayed++;
-				Team2.GamesLost++;
-				Team2.GoalsAgainst += 2;
-			}
-			else
-			{
-				Team2.GamesPlayed++;
-				Team2.GamesWon++;
-				Team2.GoalsFor += 2;
-				Team1.GamesPlayed++;
-				Team1.GamesLost++;
-				Team1.GoalsAgainst += 2;
-			}
+			const int32 GoalsTeam1 = FMath::RandRange(0, 3);
+			const int32 GoalsTeam2 = FMath::RandRange(0, 3);
+			
+			UpdateTeamData(Team1, GoalsTeam1, GoalsTeam2); 
+			UpdateTeamData(Team2, GoalsTeam2, GoalsTeam1); 
 		}
 	}
+}
+
+TArray<FFootballTeamData> AGameCoderTestMilaGameModeBase::GetSortedFootballTeams() const
+{
+	TArray<FFootballTeamData*> FootballTeamsData;
+	FootballDataTableRef->GetAllRows("", FootballTeamsData);
+	
+	FootballTeamsData.Sort([](const FFootballTeamData& Team1, const FFootballTeamData& Team2)
+	{
+		if (Team1.GamesWon != Team2.GamesWon)
+			return Team1.GamesWon > Team2.GamesWon;
+
+		if (Team1.GetGoalDifference() != Team2.GetGoalDifference())
+			return Team1.GetGoalDifference() > Team2.GetGoalDifference();
+		
+		return Team1.GamesLost < Team2.GamesLost;
+		
+	});
+
+	TArray<FFootballTeamData> SortedTeamNames;
+	for (const FFootballTeamData* TeamData : FootballTeamsData)
+	{
+		SortedTeamNames.Add(*TeamData);
+	}
+	return SortedTeamNames;
 }

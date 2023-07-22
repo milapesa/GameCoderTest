@@ -10,8 +10,6 @@ struct FFootballTeamData : public FTableRowBase
 {
 	GENERATED_BODY()
 	
-	int32 GetGoalDifference() const { return GoalsFor - GoalsAgainst; }
-	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	FString TeamName;
 
@@ -31,5 +29,6 @@ struct FFootballTeamData : public FTableRowBase
 	int32 GoalsAgainst;
 
 	FFootballTeamData();
-		
+
+	int32 GetGoalDifference() const { return GoalsFor - GoalsAgainst; }
 };

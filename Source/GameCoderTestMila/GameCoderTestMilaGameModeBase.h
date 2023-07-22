@@ -1,32 +1,28 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Data/FFootballTeamData.h"
-#include "Data/FootballDataTable.h"
-#include "Interfaces/GameModeInterface.h"
+#include "Interfaces/FootballSimulatorInterface.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameCoderTestMilaGameModeBase.generated.h"
 
 UCLASS()
-class GAMECODERTESTMILA_API AGameCoderTestMilaGameModeBase : public AGameModeBase, public IGameModeInterface
+class GAMECODERTESTMILA_API AGameCoderTestMilaGameModeBase : public AGameModeBase, public IFootballSimulatorInterface
 {
 	GENERATED_BODY()
 
 public:
 
 	void BeginPlay() override;
-	virtual void SimulateMatchesInterface_Implementation() override;
+
+	//Interface connecting the widgets to the Game Mode to simulate the matches between teams.
+	virtual void SimulateMatches() override;
+
+	//Sorting teams by best to worst function
+	virtual TArray<FFootballTeamData> GetSortedFootballTeams() const override;
 
 protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Football")
 	TSoftObjectPtr<UDataTable> FootballDataTableRef;
-	
-private:
-	
-	UPROPERTY()
-	UDataTable* FootballDataTable;
-	
 };
